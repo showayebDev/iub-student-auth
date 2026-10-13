@@ -1,0 +1,124 @@
+You are analyzing a website that I am authorized to integrate with:
+
+TARGET WEBSITE:
+https://irasv1.iub.edu.bd/
+
+OBJECTIVE:
+Find the current public frontend implementation of the login request and
+describe exactly how the password/request is transformed before it is sent.
+The website developer may have changed the compiled JavaScript since the last
+analysis, so do not assume that previous algorithm, keys, IVs, bundle names,
+framework, endpoint, or response shape are still valid.
+
+SCOPE AND SAFETY:
+- Inspect only resources publicly delivered to an unauthenticated browser:
+  HTML, JavaScript, CSS, source maps if publicly exposed, and public assets.
+- Do not bypass authentication, discover hidden endpoints by attacking the
+  server, brute-force credentials, disable TLS, or access other users' data.
+- Do not submit credentials or execute the login request unless I explicitly
+  provide an authorized test account and ask for a controlled verification.
+- Never print, store, or report plaintext passwords, live tokens, cookies, or
+  authorization headers. Redact them as [REDACTED].
+- Treat strings found in a minified bundle as candidates until their use is
+  traced to the login request.
+
+INVESTIGATION PROCEDURE:
+
+1. Load the target homepage and record:
+   - final URL and HTTP status;
+   - HTML script, stylesheet, preload, module, and manifest references;
+   - framework/build indicators;
+   - Content-Security-Policy and allowed API origins.
+
+2. Discover all publicly loaded JavaScript:
+   - inspect script tags and performance/resource entries;
+   - inspect runtime webpack/Vite/chunk manifests;
+   - identify lazy-loaded chunks used by the login route;
+   - follow only same-origin public bundle references;
+   - check for publicly exposed source maps, but do not fabricate one if it
+     returns 404.
+
+3. Locate the login flow using multiple markers:
+   - visible login form labels and submit handlers;
+   - strings such as login, sign-in, token, account, password, email,
+     Authorization, access_token, message, data;
+   - URL fragments and API paths;
+   - HTTP methods and JSON body construction;
+   - imported crypto libraries and browser Web Crypto calls.
+   Search both readable source maps and minified bundles.
+
+4. Trace the exact value flow from the password input to the network body.
+   Establish:
+   - whether the password is sent unchanged, encoded, hashed, encrypted, or
+     transformed by a custom routine;
+   - the exact character encoding;
+   - algorithm and variant, for example AES-CBC, AES-GCM, RSA-OAEP, HMAC,
+     PBKDF2, SHA-256, or a custom operation;
+   - padding, mode, digest, salt, nonce/IV, tag handling, key size, and
+     output encoding;
+   - how keys, IVs, salts, or public keys are obtained;
+   - whether values are constants, derived at runtime, fetched from an API,
+     stored in configuration, or generated randomly;
+   - exact JSON property names and serialization behavior.
+
+5. Inspect the browser Network panel for a single controlled test login only
+   if authorized:
+   - record request method, URL, status, request content type, redacted body
+     shape, and response schema;
+   - compare the observed request with the traced code;
+   - do not retain credentials, cookies, bearer tokens, or response bodies
+     containing secrets.
+
+6. Reproduce only the transformation locally using a harmless test string.
+   If the site exposes a deterministic transformation, verify the local
+   implementation against the browser's redacted request representation.
+   Never claim a match merely because an algorithm or string was found nearby.
+
+7. Compare the result with any existing client code:
+   - identify changed endpoint, headers, encryption details, payload shape,
+     token extraction, or error behavior;
+   - propose the smallest compatible code change;
+   - preserve explicit error handling and never add hard-coded credentials.
+
+REQUIRED REPORT:
+
+A. Evidence table:
+   | Finding | Evidence source | Location/line or bundle offset |
+
+B. Current login flow:
+   - login UI/handler;
+   - endpoint and HTTP method;
+   - request headers that are functionally required;
+   - redacted JSON body shape;
+   - response and token path;
+   - failure response handling.
+
+C. Transformation specification:
+   - exact algorithm;
+   - exact encoding/padding/mode parameters;
+   - key/IV/public-key source, but redact any sensitive runtime secrets;
+   - deterministic or randomized behavior;
+   - confidence level and the test used.
+
+D. Implementation guidance:
+   - language-neutral pseudocode;
+   - Python and JavaScript examples if requested;
+   - dependency and runtime requirements;
+   - secure handling of credentials and tokens.
+
+E. Change-resilience notes:
+   - bundle fingerprints and deployment-specific names;
+   - what markers should be searched after a future deployment;
+   - what observations would prove the algorithm changed;
+   - unresolved items and limitations.
+
+QUALITY RULES:
+- Distinguish direct observations from inferences.
+- Cite exact bundle names, source-map files, URLs, and offsets whenever
+  possible.
+- Do not infer encryption from Base64 alone.
+- Do not call a value a key or IV unless it is passed into the crypto API.
+- Do not report a complete result if lazy chunks, runtime configuration, or
+  network evidence remain unexamined.
+- If the site is unavailable or the relevant code is not public, say exactly
+  what could not be verified and stop rather than guessing.
